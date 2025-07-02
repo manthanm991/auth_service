@@ -1,70 +1,161 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# 🔐 Auth Service – MERN Stack
 
-## Available Scripts
+A full-stack authentication system built using the MERN stack (MongoDB, Express.js, React.js, Node.js) featuring secure login, registration, token-based authentication (JWT), and concurrent frontend/backend development setup.
 
-In the project directory, you can run:
+## 📁 Project Structure
 
-### `npm start`
+```
+auth/
+├── backend/              # Node.js + Express + MongoDB
+│   ├── controllers/
+│   ├── middlewares/
+│   ├── models/
+│   ├── routes/
+│   ├── db.js
+│   ├── index.js
+│   ├── .env              # Backend environment variables
+│   └── package.json
+├── public/
+├── src/                  # React frontend
+│   ├── assets/
+│   ├── Auth/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── utils/
+│   │   └── index.js
+│   ├── components/
+│   └── App.js
+├── .env                  # Frontend environment variables
+├── package.json
+├── README.md
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## ⚙️ Setup Instructions
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 1. Clone the Repository
 
-### `npm test`
+```bash
+git clone https://github.com/your-username/auth.git
+cd auth
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 2. Install Dependencies
 
-### `npm run build`
+Install both frontend and backend dependencies:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+# Root (frontend)
+npm install
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# Backend
+cd backend
+npm install
+cd ..
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 3. Configure Environment Variables
 
-### `npm run eject`
+#### Backend (`/backend/.env`)
+```env
+PORT=5000
+MONGO_URI=your_mongo_db_connection_string
+JWT_SECRET=your_jwt_secret
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+#### Frontend (`/.env`)
+```env
+PORT=3000
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+> You can also add a `"proxy"` field in frontend `package.json` to avoid CORS:
+```json
+"proxy": "http://localhost:5000"
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 4. Run the Application
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Use `concurrently` to start both frontend and backend:
 
-## Learn More
+```bash
+npm run dev
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+This runs:
+- React frontend at [http://localhost:3000](http://localhost:3000)
+- Node backend at [http://localhost:5000](http://localhost:5000)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 🧪 Available Scripts
 
-### Code Splitting
+From the root project:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- `npm start` — starts the frontend only (React)
+- `npm run dev` — runs both frontend and backend using concurrently
+- `npm run build` — builds frontend for production
 
-### Analyzing the Bundle Size
+From `/backend`:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- `node index.js` or `nodemon index.js` — runs the backend server
 
-### Making a Progressive Web App
+## 🔐 Features
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- JWT-based authentication
+- Secure registration and login
+- Form input validation (email/password)
+- MongoDB for data persistence
+- Toast messages for UI feedback
+- Environment variable support via `dotenv`
+- CORS handled via proxy configuration
+- Middleware for protected routes
 
-### Advanced Configuration
+## ⚠️ Webpack Deprecation Warning Fix
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+If you see warnings like:
 
-### Deployment
+```
+[DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] option is deprecated
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+To resolve:
 
-### `npm run build` fails to minify
+- Upgrade `react-scripts` to the latest version:
+  ```bash
+  npm install react-scripts@latest
+  ```
+- Or use `craco` to override Webpack config without ejecting:
+  ```bash
+  npm install @craco/craco --save
+  ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Then, replace `react-scripts` commands in `package.json` with `craco` and create a `craco.config.js` to configure `devServer.setupMiddlewares`.
+
+## 🛠 Future Improvements
+
+- Role-based access control
+- Email verification & password reset
+- Rate limiting & brute-force protection
+- Dockerize for consistent environments
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🙌 Acknowledgments
+
+- [React](https://reactjs.org/)
+- [Express](https://expressjs.com/)
+- [MongoDB](https://mongodb.com/)
+- [JWT.io](https://jwt.io/)
+- [Create React App](https://create-react-app.dev/)
+
+
+---
+<div align="center">
+
+Developed by **Manthan Makode**<br>
+📧 [Email](mailto:manthanmakode991@gmail.com) | 
+🔗 [LinkedIn](https://www.linkedin.com/in/manthan-makode/) | 
+💻 [GitHub](https://github.com/manthanm991) 
+<div>
