@@ -7,13 +7,15 @@ import { ROUTES } from '../utils/constants';
 import FormField from '../../components/common/FormField';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import '../../assets/css/auth.css';
+import { useRecaptcha } from '../hooks/useRecaptcha';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [fieldErrors, setFieldErrors] = useState({});
   const { login, loading, getRedirectPath } = useAuth();
   const navigate = useNavigate();
-
+  const { getToken } = useRecaptcha();
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFieldErrors({});
@@ -25,19 +27,16 @@ const Login = () => {
     }
 
     try {
-      if (window.grecaptcha) {
-        const token = await window.grecaptcha.execute(process.env.REACT_APP_RECAPTCHA_SITE_KEY, { action: 'login' });
-        const result = await login({ ...credentials, recaptchaToken: token });
+      const recaptchaToken = await getToken('login');
+      const result = await login({ ...credentials, recaptchaToken: recaptchaToken });
 
-        if (result.success) {
-          const redirectPath = getRedirectPath(result.user);
-          navigate(redirectPath);
-        } else {
-          toast.error(result.message || 'Login failed');
-        }
+      if (result.success) {
+        const redirectPath = getRedirectPath(result.user);
+        navigate(redirectPath);
       } else {
-        toast.error('reCAPTCHA not loaded');
+        toast.error(result.message || 'Login failed');
       }
+
     } catch (error) {
       toast.error('An unexpected error occurred. Please try again.');
     }
