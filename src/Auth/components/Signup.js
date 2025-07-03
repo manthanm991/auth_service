@@ -9,9 +9,9 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import '../../assets/css/auth.css';
 
 const Signup = () => {
-  const [userData, setUserData] = useState({ name: '', email: '', password: '', confirmPassword: ''});
+  const [userData, setUserData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [fieldErrors, setFieldErrors] = useState({});
-  
+
   const { signup, loading, getRedirectPath } = useAuth();
   const navigate = useNavigate();
 
@@ -26,15 +26,22 @@ const Signup = () => {
     }
 
     try {
-      const result = await signup(userData);
-      
-      if (result.success) {
-        if (result.requiresLogin) {
-          navigate(ROUTES.LOGIN);
+      if (window.grecaptcha) {
+        const token = await window.grecaptcha.execute(process.env.REACT_APP_RECAPTCHA_SITE_KEY, { action: 'createuser' });
+        const result = await signup({ ...userData, recaptchaToken: token });
+
+        if (result.success) {
+          if (result.requiresLogin) {
+            navigate(ROUTES.LOGIN);
+          } else {
+            const redirectPath = getRedirectPath(result.user);
+            navigate(redirectPath);
+          }
         } else {
-          const redirectPath = getRedirectPath(result.user);
-          navigate(redirectPath);
+          toast.error(result.message || 'Signup failed');
         }
+      } else {
+        toast.error('reCAPTCHA not loaded');
       }
     } catch (error) {
       toast.error('An unexpected error occurred. Please try again.');
@@ -44,7 +51,7 @@ const Signup = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUserData(prev => ({ ...prev, [name]: value }));
-    
+
     if (fieldErrors[name]) { setFieldErrors(prev => ({ ...prev, [name]: null })); }
   };
 
@@ -53,7 +60,7 @@ const Signup = () => {
       <div className="logo-container">
         <img src="/assets/images/logo.png" alt="Company Logo" className="logo" />
       </div>
-      
+
       <form onSubmit={handleSubmit} id="signupForm" data-action="createuser">
         <FormField id="name" name="name" type="text" label="Full Name" placeholder="Enter your full name" value={userData.name} onChange={handleChange} required disabled={loading} autoComplete="name" minLength={2} error={fieldErrors.name} />
 
@@ -64,7 +71,7 @@ const Signup = () => {
         <FormField id="confirmPassword" name="confirmPassword" type="password" label="Confirm Password" placeholder="Confirm your password" value={userData.confirmPassword} onChange={handleChange} required disabled={loading} autoComplete="new-password" minLength={8} error={fieldErrors.confirmPassword} />
 
         <button type="submit" className="btn btn-primary w-100" disabled={loading} >
-          {loading ? ( <LoadingSpinner size="sm" text="Creating Account..." /> ) : ( 'Create Account' )}
+          {loading ? (<LoadingSpinner size="sm" text="Creating Account..." />) : ('Create Account')}
         </button>
       </form>
       <hr />

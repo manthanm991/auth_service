@@ -11,7 +11,6 @@ import '../../assets/css/auth.css';
 const Login = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [fieldErrors, setFieldErrors] = useState({});
-  
   const { login, loading, getRedirectPath } = useAuth();
   const navigate = useNavigate();
 
@@ -26,11 +25,18 @@ const Login = () => {
     }
 
     try {
-      const result = await login(credentials);
-      
-      if (result.success) {
-        const redirectPath = getRedirectPath(result.user);
-        navigate(redirectPath);
+      if (window.grecaptcha) {
+        const token = await window.grecaptcha.execute(process.env.REACT_APP_RECAPTCHA_SITE_KEY, { action: 'login' });
+        const result = await login({ ...credentials, recaptchaToken: token });
+
+        if (result.success) {
+          const redirectPath = getRedirectPath(result.user);
+          navigate(redirectPath);
+        } else {
+          toast.error(result.message || 'Login failed');
+        }
+      } else {
+        toast.error('reCAPTCHA not loaded');
       }
     } catch (error) {
       toast.error('An unexpected error occurred. Please try again.');
@@ -48,7 +54,7 @@ const Login = () => {
       <div className="logo-container">
         <img src="/assets/images/logo.png" alt="Company Logo" className="logo" />
       </div>
-      
+
       <form onSubmit={handleSubmit} id="loginForm" data-action="login">
         <FormField id="email" name="email" type="email" label="Email Address" placeholder="Enter valid email" value={credentials.email} onChange={handleChange} required disabled={loading} autoComplete="email" error={fieldErrors.email} />
 

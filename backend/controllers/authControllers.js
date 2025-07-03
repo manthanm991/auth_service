@@ -2,12 +2,22 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
+const { verifyRecaptcha } = require('../utils/recaptcha');
 
 exports.createuser = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) { return res.status(400).json({ errors: errors.array() }); }
 
-    const { name, email, password } = req.body;
+    const { name, email, password, recaptchaToken } = req.body;
+    try {
+        const recaptchaRes = await verifyRecaptcha(recaptchaToken);
+        if (!recaptchaRes.success || recaptchaRes.score < 0.5) {
+            return res.status(403).json({ error: 'reCAPTCHA verification failed' });
+        }
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to verify reCAPTCHA' });
+    }
+
     try {
         const existingUser = await User.findOne({ email });
         if (existingUser) { return res.status(400).json({ error: 'User already exists' }); }
@@ -32,9 +42,18 @@ exports.createuser = async (req, res) => {
 
 exports.login = async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {return res.status(400).json({ error: errors.array() });}
+    if (!errors.isEmpty()) { return res.status(400).json({ error: errors.array() }); }
 
-    const { email, password } = req.body;
+    const { email, password, recaptchaToken } = req.body;
+    try {
+        const recaptchaRes = await verifyRecaptcha(recaptchaToken);
+        if (!recaptchaRes.success || recaptchaRes.score < 0.5) {
+            return res.status(403).json({ error: 'reCAPTCHA verification failed' });
+        }
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to verify reCAPTCHA' });
+    }
+
     try {
         const user = await User.findOne({ email });
         if (!user) { return res.status(404).json({ error: 'User not found' }); }
@@ -57,13 +76,13 @@ exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.find().select('-password');
         res.json({ success: true, users });
-    } catch (err) {res.status(500).json({ error: 'Internal Server Error' });}
+    } catch (err) { res.status(500).json({ error: 'Internal Server Error' }); }
 };
 
 exports.getUser = async (req, res) => {
     try {
-      const userId = req.user.id;
-      const user = await User.findById(userId).select('-password');
-      res.json({ success: true, user });
+        const userId = req.user.id;
+        const user = await User.findById(userId).select('-password');
+        res.json({ success: true, user });
     } catch (err) { res.status(500).json({ error: 'Internal Server Error' }); }
 };
