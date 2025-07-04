@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { API_ENDPOINTS, ROUTES } from '../utils/constants';
+import { API_BASE_URL, AUTH_ENDPOINTS, ROUTES } from '../utils/constants';
 import { useAuth } from './useAuth';
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -12,7 +12,7 @@ export const useGoogleAuth = () => {
 
     const handleGoogleCallback = useCallback(async (response) => {
         try {
-            const res = await fetch(API_ENDPOINTS.GOOGLE_CALLBACK, {
+            const res = await fetch(`${API_BASE_URL}${AUTH_ENDPOINTS.GOOGLE_CALLBACK}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ credential: response.credential }),
