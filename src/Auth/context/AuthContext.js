@@ -88,6 +88,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const setAuthData = (user, token) => {
+    if (user && token) {
+      storeAuthData(token, user);
+      dispatch({ type: AUTH_ACTIONS.AUTH_SUCCESS, payload: { token, user } });
+    }
+  };
+
   const logout = () => {
     clearAuthData();
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
@@ -95,7 +102,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const clearError = () => { dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR }); };
-  const value = { ...state, login, signup, logout, clearError, getRedirectPath };
+  const value = { ...state, login, signup, logout, clearError, getRedirectPath, setAuthData };
 
   return ( <AuthContext.Provider value={value}> {children} </AuthContext.Provider> );
 };

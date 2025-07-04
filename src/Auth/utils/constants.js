@@ -1,4 +1,9 @@
 export const API_BASE_URL = 'http://localhost:5000/api/auth/';
+
+export const API_ENDPOINTS = {
+  GOOGLE_CALLBACK: 'http://localhost:5000/api/auth/callback',
+};
+
 export const AUTH_ENDPOINTS = {
   LOGIN: 'login',
   SIGNUP: 'createuser',
