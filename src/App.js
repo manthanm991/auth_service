@@ -12,6 +12,7 @@ import ForgotPassword from './Auth/components/ForgotPassword';
 import Unauthorized from './Auth/components/Unauthorized';
 import { PrivateRoute, PublicRoute, AdminRoute, ROUTES, TOAST_CONFIG } from './Auth';
 import "./App.css";
+import ResetPassword from './Auth/components/ResetPassword';
 
 function App() {
     return (
@@ -24,6 +25,7 @@ function App() {
                             <Route path={ROUTES.LOGIN} element={<Login />} />
                             <Route path={ROUTES.SIGNUP} element={<Signup />} />
                             <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+                            <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
                         </Route>
 
                         <Route element={<PrivateRoute />}>

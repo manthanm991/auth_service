@@ -2,116 +2,103 @@ const { validationResult } = require('express-validator');
 const { OAuth2Client } = require('google-auth-library');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 const { verifyRecaptcha } = require('../utils/recaptcha');
+const { sendResetPasswordEmail } = require('../services/mailService');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 exports.createuser = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) { return res.status(400).json({ errors: errors.array() }); }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) { return res.status(400).json({ errors: errors.array() }); }
 
-    const { name, email, password, recaptchaToken } = req.body;
-    try {
-        const recaptchaRes = await verifyRecaptcha(recaptchaToken);
-        if (!recaptchaRes.success || recaptchaRes.score < 0.5) {
-            return res.status(403).json({ error: 'reCAPTCHA verification failed' });
-        }
-    } catch (err) {
-        return res.status(500).json({ error: 'Failed to verify reCAPTCHA' });
+  const { name, email, password, recaptchaToken } = req.body;
+  try {
+    const recaptchaRes = await verifyRecaptcha(recaptchaToken);
+    if (!recaptchaRes.success || recaptchaRes.score < 0.5) {
+      return res.status(403).json({ error: 'reCAPTCHA verification failed' });
     }
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to verify reCAPTCHA' });
+  }
 
-    try {
-        const existingUser = await User.findOne({ email });
-        if (existingUser) { return res.status(400).json({ error: 'User already exists' }); }
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) { return res.status(400).json({ error: 'User already exists' }); }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ name, email, password: hashedPassword });
-        const savedUser = await newUser.save();
-        const payload = { user: { id: savedUser._id } };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ name, email, password: hashedPassword });
+    const savedUser = await newUser.save();
+    const payload = { user: { id: savedUser._id } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-        res.status(201).json({
-            success: true,
-            token,
-            user: {
-                id: savedUser._id,
-                name: savedUser.name,
-                email: savedUser.email
-            }
-        });
-    } catch (err) { res.status(500).json({ error: 'Server error' }); }
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: savedUser._id,
+        name: savedUser.name,
+        email: savedUser.email
+      }
+    });
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
 };
 
 exports.login = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) { return res.status(400).json({ error: errors.array() }); }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) { return res.status(400).json({ error: errors.array() }); }
 
-    const { email, password, recaptchaToken } = req.body;
-    try {
-        const recaptchaRes = await verifyRecaptcha(recaptchaToken);
-        if (!recaptchaRes.success || recaptchaRes.score < 0.5) {
-            return res.status(403).json({ error: 'reCAPTCHA verification failed' });
-        }
-    } catch (err) {
-        return res.status(500).json({ error: 'Failed to verify reCAPTCHA' });
+  const { email, password, recaptchaToken } = req.body;
+  try {
+    const recaptchaRes = await verifyRecaptcha(recaptchaToken);
+    if (!recaptchaRes.success || recaptchaRes.score < 0.5) {
+      return res.status(403).json({ error: 'reCAPTCHA verification failed' });
+    }
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to verify reCAPTCHA' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) { return res.status(404).json({ error: 'User not found' }); }
+
+    if (user.googleId && !user.password) {
+      return res.status(400).json({
+        error: 'Please sign in with Google instead'
+      });
     }
 
-    try {
-        const user = await User.findOne({ email });
-        if (!user) { return res.status(404).json({ error: 'User not found' }); }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) { return res.status(401).json({ error: 'Invalid credentials' }); }
 
-        if (user.googleId && !user.password) {
-            return res.status(400).json({ 
-                error: 'Please sign in with Google instead' 
-            });
-        }
-        
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) { return res.status(401).json({ error: 'Invalid credentials' }); }
+    const payload = { user: { id: user._id } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-        const payload = { user: { id: user._id } };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
-
-        res.json({
-            success: true,
-            token,
-            user: { id: user._id, name: user.name, email: user.email }
-        });
-    } catch (err) { res.status(500).json({ error: 'Server error' }); }
-};
-
-exports.getAllUsers = async (req, res) => {
-    try {
-        const users = await User.find().select('-password');
-        res.json({ success: true, users });
-    } catch (err) { res.status(500).json({ error: 'Internal Server Error' }); }
-};
-
-exports.getUser = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const user = await User.findById(userId).select('-password');
-        res.json({ success: true, user });
-    } catch (err) { res.status(500).json({ error: 'Internal Server Error' }); }
+    res.json({
+      success: true,
+      token,
+      user: { id: user._id, name: user.name, email: user.email }
+    });
+  } catch (err) { res.status(500).json({ error: 'Server error' }); }
 };
 
 exports.googleCallback = async (req, res) => {
   try {
     const { credential } = req.body;
-    
+
     const ticket = await client.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID, });
-    
+
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
-    
-    let user = await User.findOne({ 
+
+    let user = await User.findOne({
       $or: [
         { email: email },
         { googleId: googleId }
       ]
     });
-    
+
     if (user) {
       if (!user.googleId) {
         user.googleId = googleId;
@@ -128,10 +115,10 @@ exports.googleCallback = async (req, res) => {
       });
       await user.save();
     }
-    
+
     const jwtPayload = { user: { id: user._id } };
     const token = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
-    
+
     res.json({
       success: true,
       token,
@@ -142,8 +129,66 @@ exports.googleCallback = async (req, res) => {
         profilePicture: user.profilePicture
       }
     });
-    
+
   } catch (error) {
     res.status(401).json({ success: false, message: 'Invalid Google token' });
   }
+};
+
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = Date.now() + 3600000;
+
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = expires;
+    await user.save();
+
+    const resetURL = `http://localhost:3000/reset-password/${token}`;
+    await sendResetPasswordEmail(user.email, user.name, resetURL);
+
+    res.json({ success: true, message: 'Password reset email sent' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const user = await User.findOne({ resetPasswordToken: token, resetPasswordExpires: { $gt: Date.now() } });
+    if (!user) return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+    res.json({ success: true, message: 'Password has been reset' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    res.json({ success: true, users });
+  } catch (err) { res.status(500).json({ error: 'Internal Server Error' }); }
+};
+
+exports.getUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('-password');
+    res.json({ success: true, user });
+  } catch (err) { res.status(500).json({ error: 'Internal Server Error' }); }
 };

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createuser, login, getAllUsers, getUser, googleCallback } = require('../controllers/authControllers');
+const { createuser, login, getAllUsers, getUser, googleCallback, forgotPassword, resetPassword } = require('../controllers/authControllers');
 const verify = require('../middlewares/authMiddleware');
 const { body } = require("express-validator");
 
@@ -22,5 +22,9 @@ router.get('/users', verify, getAllUsers);
 router.get('/user', verify, getUser);
 
 router.post('/callback', googleCallback);
+
+router.post('/forgot-password', forgotPassword);
+
+router.post('/reset-password/:token', resetPassword);
 
 module.exports = router;

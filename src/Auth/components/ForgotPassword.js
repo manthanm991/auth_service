@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { isValidEmail } from '../utils/validation';
-import { forgotPassword } from '../services/authService';
+import { forgotPassword, handleAuthError } from '../services/authService';
 import { ROUTES, ERROR_MESSAGES } from '../utils/constants';
 import FormField from '../../components/common/FormField';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -33,7 +33,7 @@ const ForgotPassword = () => {
       setSubmitted(true);
       toast.success('Reset link sent! Check your email.');
     } catch (error) { 
-      toast.error(error.message || 'Failed to send reset email');
+      toast.error(handleAuthError(error) || 'Failed to send reset email');
     } finally { 
       setLoading(false);
     }

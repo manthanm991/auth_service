@@ -28,7 +28,8 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   PROFILE: '/profile',
   FORGOT_PASSWORD: '/forgotPassword',
-  UNAUTHORIZED: '/unauthorized'
+  UNAUTHORIZED: '/unauthorized',
+  RESET_PASSWORD: '/reset-password/:token'
 };
 
 export const VALIDATION_RULES = {
